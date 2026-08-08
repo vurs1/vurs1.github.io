@@ -1,49 +1,31 @@
 # Vaibhav Urs - Portfolio
 
-A modern, fast portfolio built around current design trends: a **bento
-grid**, **oversized kinetic typography**, smooth **scroll-reveal** animations,
-**micro-interactions**, an animated aurora + grain background, and a punchy
-near-black + acid-lime + violet palette. Pure HTML/CSS/JS — no framework, no
-build step.
+A three-part personal portfolio with a warm, playful landing page that branches
+into two distinct worlds: a technical engineering portfolio and a music page.
+Pure HTML/CSS/JS - no framework or build step.
 
 ## Highlights
 
-- **Bold hero** with giant Space Grotesk type and an outlined accent word.
-- **Marquee** strip of roles, kinetic scrolling.
-- **Bento grid** about section - intro, photo (from GitHub), **education (ASU)**,
-  "Now @ Microsoft", **Next Prospect**, teaching and research metrics,
-  a live **saxophone equalizer**, stack badges, and count-up stats.
-- **Work** as big hover rows with tech tags.
-- **Watch me play** — a reels gallery linking my saxophone
-  [@vaibhav.saxophone](https://www.instagram.com/vaibhav.saxophone/) on Instagram
-  &amp; TikTok. (The clip cards currently link to the profiles — swap each card's
-  `href` in `index.html` for a specific reel/video URL to point at individual clips.)
-- **Custom cursor** (dot + ring), **magnetic** primary button, subtle card tilt,
-  nav active states, live local clock.
-- **"How'd he make that" effects:**
-  - **Interactive particle constellation** in the hero that reacts to your mouse —
-    and **pulses to the saxophone** when you hit Play (sound-reactive).
-  - **Spotlight + holographic sheen** on the bento cards (glow follows the cursor;
-    a light sweep on hover).
-  - **Text scramble / decode** animation on the headings.
-  - **Marquee** that skews with your scroll velocity.
-  - **Scroll-progress bar** and subtle **mouse parallax** on the name.
-- **Play my sax** — a saxophone phrase synthesized live with the Web Audio API,
-  driving the on-page equalizer.
-- Responsive, accessible (skip link, keyboard focus rings, respects
-  `prefers-reduced-motion` for entrance), and lightweight.
-- **Recruiter-ready**: direct email and LinkedIn links, Open Graph / Twitter share
-  previews, a tasteful page-load intro, and a back-to-top button.
+- Original desk-inspired landing page with Work and Music choices.
+- Editorial Work page using Vaibhav's ASU-inspired maroon, gold, and cream palette.
+- Jazz-inspired Music page with performance links and personal context.
+- Responsive navigation, accessible focus states, and reduced-motion support.
+- Lightweight one-time reveal effects with no continuous animation loops.
+- **Recruiter-ready**: direct email, LinkedIn, GitHub, project, and social links.
 
 ## Project structure
 
 ```
 portfolio/
-├── index.html          # All sections + content
+├── index.html          # Work / Music landing page
+├── work.html           # Engineering experience and projects
+├── music.html          # Saxophone and music page
 ├── serve.js            # Tiny zero-dependency local server
 └── assets/
-    ├── styles.css      # The full design system
-    └── main.js         # Cursor, reveals, magnetics, clock, sax synth + equalizer
+    ├── home.css        # Landing page
+    ├── work.css        # Technical portfolio
+    ├── work.js         # Work-page navigation and reveals
+    └── music.css       # Music page
 ```
 
 ## Run locally
@@ -55,11 +37,9 @@ node serve.js          # then open http://localhost:3000
 
 ## Customize
 
-- **Content** — edit the sections in `index.html`.
-- **Resume** - optionally add a PDF and link it from `index.html`.
-- **Email/contact** - update the `mailto:` links in `index.html`.
-- **Palette** — CSS vars at the top of `styles.css` (`--lime`, `--violet`, …).
-- **The sax phrase** — the `phrase` note array in `assets/main.js`.
+- **Content** - edit `index.html`, `work.html`, and `music.html`.
+- **Email/contact** - update the `mailto:` links in the HTML files.
+- **Palette** - edit the CSS variables at the top of each page's stylesheet.
 
 ## Deploy to GitHub Pages
 
