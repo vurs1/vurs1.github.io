@@ -25,7 +25,8 @@ portfolio/
     ├── home.css        # Landing page
     ├── work.css        # Technical portfolio
     ├── work.js         # Work-page navigation and reveals
-    └── music.css       # Music page
+    ├── music.css       # Music page
+    └── Vaibhav-Urs-Resume.pdf
 ```
 
 ## Run locally
@@ -38,6 +39,7 @@ node serve.js          # then open http://localhost:3000
 ## Customize
 
 - **Content** - edit `index.html`, `work.html`, and `music.html`.
+- **Resume** - replace `assets/Vaibhav-Urs-Resume.pdf` with the latest version.
 - **Email/contact** - update the `mailto:` links in the HTML files.
 - **Palette** - edit the CSS variables at the top of each page's stylesheet.
 
