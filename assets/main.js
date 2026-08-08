@@ -4,18 +4,30 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
 const clockEl = document.getElementById("clock");
 function tickClock() {
   if (!clockEl) return;
-  const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   clockEl.textContent = t + " local";
 }
-setInterval(tickClock, 1000); tickClock();
+setInterval(tickClock, 60000); tickClock();
 
 // ---------- custom cursor ----------
 const dot = document.querySelector(".cursor-dot");
 const ring = document.querySelector(".cursor-ring");
 let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
 if (dot && ring && matchMedia("(pointer: fine)").matches) {
-  addEventListener("pointermove", (e) => { mx = e.clientX; my = e.clientY; dot.style.left = mx + "px"; dot.style.top = my + "px"; });
-  (function follow() { rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18; ring.style.left = rx + "px"; ring.style.top = ry + "px"; requestAnimationFrame(follow); })();
+  let cursorFrame = 0;
+  function followCursor() {
+    rx += (mx - rx) * 0.22;
+    ry += (my - ry) * 0.22;
+    ring.style.transform = `translate3d(${rx}px, ${ry}px, 0) translate(-50%, -50%)`;
+    if (Math.abs(mx - rx) > 0.15 || Math.abs(my - ry) > 0.15) cursorFrame = requestAnimationFrame(followCursor);
+    else cursorFrame = 0;
+  }
+  addEventListener("pointermove", (e) => {
+    mx = e.clientX;
+    my = e.clientY;
+    dot.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%, -50%)`;
+    if (!cursorFrame) cursorFrame = requestAnimationFrame(followCursor);
+  }, { passive: true });
   document.querySelectorAll("[data-cursor], a, button").forEach((el) => {
     el.addEventListener("pointerenter", () => ring.classList.add("hover"));
     el.addEventListener("pointerleave", () => ring.classList.remove("hover"));
@@ -80,6 +92,7 @@ const navObs = new IntersectionObserver((entries) => {
  * =======================================================================*/
 let audioCtx = null, analyser = null, freqData = null, isPlaying = false;
 let heroAudio = 0; // shared 0..1 level that drives the hero particles
+let eqFrame = 0;
 const phrase = [[392, 0.32], [440, 0.22], [523.25, 0.5], [466.16, 0.3], [440, 0.3], [392, 0.55], [349.23, 0.3], [392, 0.62]];
 const playButtons = [document.getElementById("play-btn"), document.getElementById("play-btn-2")].filter(Boolean);
 const eqBig = document.getElementById("eq-big");
@@ -102,25 +115,26 @@ function playSax() {
   phrase.forEach(([f, d]) => { saxVoice(audioCtx, master, f, t, d); t += d; total += d; });
   isPlaying = true;
   playButtons.forEach((b) => { b.classList.add("playing"); b.setAttribute("aria-pressed", "true"); });
+  if (!eqFrame) eqFrame = requestAnimationFrame(eqLoop);
   setTimeout(() => { isPlaying = false; playButtons.forEach((b) => { b.classList.remove("playing"); b.setAttribute("aria-pressed", "false"); }); }, (total + 0.2) * 1000);
 }
 window.playSax = playSax;
 playButtons.forEach((b) => b.addEventListener("click", playSax));
 
-// Equalizer animation loop
-(function eqLoop() {
-  requestAnimationFrame(eqLoop);
+// Equalizer runs only while audio is playing.
+function eqLoop() {
   if (isPlaying && analyser) {
     analyser.getByteFrequencyData(freqData);
     let sum = 0; for (let i = 0; i < freqData.length; i++) sum += freqData[i];
     heroAudio = Math.min(1, (sum / freqData.length / 255) * 1.6);
     eqBars.forEach((bar, i) => { const v = (freqData[i % freqData.length] / 255) * 100; bar.style.height = Math.max(8, v) + "%"; });
+    eqFrame = requestAnimationFrame(eqLoop);
   } else {
-    heroAudio *= 0.92;
-    const t = Date.now() * 0.004;
-    eqBars.forEach((bar, i) => { bar.style.height = (12 + (Math.sin(t + i * 0.6) * 0.5 + 0.5) * 22) + "%"; });
+    heroAudio = 0;
+    eqBars.forEach((bar, i) => { bar.style.height = `${14 + (i % 4) * 5}%`; });
+    eqFrame = 0;
   }
-})();
+}
 
 /* =========================================================================
  * "How'd he make that" effects
@@ -162,45 +176,49 @@ const scrambleObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.4 });
 document.querySelectorAll("[data-scramble]").forEach((el) => scrambleObs.observe(el));
 
-// 3) Marquee skews with scroll velocity
-(function marqueeSkew() {
-  const marquee = document.querySelector(".marquee");
-  if (!marquee) return;
-  let lastY = window.scrollY, skew = 0;
-  (function loop() {
-    requestAnimationFrame(loop);
-    const y = window.scrollY, v = y - lastY; lastY = y;
-    const target = Math.max(-14, Math.min(14, v * -0.5));
-    skew += (target - skew) * 0.12;
-    marquee.style.transform = `skewX(${skew.toFixed(2)}deg)`;
-  })();
-})();
-
-// 4) Interactive particle constellation in the hero
+// 3) Interactive particle constellation in the hero
 (function constellation() {
   const canvas = document.querySelector(".hero-fx");
-  if (!canvas) return;
+  if (!canvas || REDUCED || innerWidth < 900) {
+    canvas?.remove();
+    return;
+  }
   const ctx = canvas.getContext("2d");
-  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
   let w = 0, h = 0, pts = [], maxD = 120 * dpr;
   const mouse = { x: -9999, y: -9999 };
   function resize() {
     const r = canvas.getBoundingClientRect();
     w = canvas.width = Math.max(1, r.width * dpr); h = canvas.height = Math.max(1, r.height * dpr);
     canvas.style.width = r.width + "px"; canvas.style.height = r.height + "px";
-    const count = Math.min(85, Math.floor(r.width / 15));
+    const count = Math.min(42, Math.floor(r.width / 28));
     pts = Array.from({ length: count }, () => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.25 * dpr, vy: (Math.random() - 0.5) * 0.25 * dpr }));
   }
   resize(); addEventListener("resize", resize);
   const host = canvas.parentElement;
   host.addEventListener("pointermove", (e) => { const r = canvas.getBoundingClientRect(); mouse.x = (e.clientX - r.left) * dpr; mouse.y = (e.clientY - r.top) * dpr; });
   host.addEventListener("pointerleave", () => { mouse.x = mouse.y = -9999; });
-  let visible = true;
-  new IntersectionObserver((es) => { visible = es[0].isIntersecting; }, { threshold: 0 }).observe(canvas);
+  let visible = true, running = false, lastFrame = 0;
+  function start() {
+    if (!running && visible && !document.hidden) {
+      running = true;
+      requestAnimationFrame(draw);
+    }
+  }
+  new IntersectionObserver((es) => {
+    visible = es[0].isIntersecting;
+    start();
+  }, { threshold: 0 }).observe(canvas);
+  document.addEventListener("visibilitychange", start);
   const R = 170 * dpr;
-  (function draw() {
+  function draw(now) {
+    if (!visible || document.hidden) {
+      running = false;
+      return;
+    }
     requestAnimationFrame(draw);
-    if (!visible) return;
+    if (now - lastFrame < 33) return;
+    lastFrame = now;
     const A = heroAudio; // sound reactivity (0..1)
     const connectD = maxD * (1 + A * 0.45);
     ctx.clearRect(0, 0, w, h);
@@ -224,33 +242,45 @@ document.querySelectorAll("[data-scramble]").forEach((el) => scrambleObs.observe
       ctx.fillStyle = (near || A > 0.25) ? `rgba(205,252,79,${0.8 + A * 0.2})` : "rgba(196,214,255,0.72)";
       ctx.beginPath(); ctx.arc(p.x, p.y, (near ? 2.1 : 1.6) * dpr * sizeBoost, 0, 7); ctx.fill();
     }
-  })();
+  }
+  start();
 })();
 
-// 5) Scroll-progress bar
+// 4) Scroll-progress bar
 (function scrollProgress() {
   const fill = document.querySelector(".scroll-progress span");
   if (!fill) return;
+  let frame = 0;
   function update() {
+    frame = 0;
     const h = document.documentElement, max = h.scrollHeight - h.clientHeight;
     fill.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
   }
-  addEventListener("scroll", update, { passive: true }); update();
+  addEventListener("scroll", () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  }, { passive: true });
+  update();
 })();
 
-// 6) Subtle mouse parallax on the hero name
+// 5) Subtle mouse parallax on the hero name
 (function heroParallax() {
   const title = document.querySelector(".hero-title");
   const hero = document.querySelector(".hero");
-  if (!title || !hero) return;
+  if (!title || !hero || REDUCED) return;
+  let frame = 0, x = 0, y = 0;
   hero.addEventListener("pointermove", (e) => {
     const cx = innerWidth / 2, cy = innerHeight / 2;
-    title.style.transform = `translate(${(e.clientX - cx) * 0.012}px, ${(e.clientY - cy) * 0.012}px)`;
-  });
+    x = (e.clientX - cx) * 0.012;
+    y = (e.clientY - cy) * 0.012;
+    if (!frame) frame = requestAnimationFrame(() => {
+      title.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      frame = 0;
+    });
+  }, { passive: true });
   hero.addEventListener("pointerleave", () => { title.style.transform = ""; });
 })();
 
-// 7) Page-load intro screen
+// 6) Page-load intro screen
 (function intro() {
   const el = document.getElementById("intro");
   if (!el) return;
@@ -261,7 +291,7 @@ document.querySelectorAll("[data-scramble]").forEach((el) => scrambleObs.observe
   setTimeout(hide, 3500); // safety
 })();
 
-// 8) Back-to-top button
+// 7) Back-to-top button
 (function toTop() {
   const btn = document.querySelector(".to-top");
   if (!btn) return;
